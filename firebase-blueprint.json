@@ -1,0 +1,203 @@
+{
+  "entities": {
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A message sent in the Institutional Study Hub chat room",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the message"
+        },
+        "channel": {
+          "type": "string",
+          "description": "Channel identifier (main, lab, announcements)"
+        },
+        "senderId": {
+          "type": "string",
+          "description": "ID of the sender"
+        },
+        "senderName": {
+          "type": "string",
+          "description": "Display name of the sender"
+        },
+        "senderRole": {
+          "type": "string",
+          "description": "Role of the sender (student or faculty)"
+        },
+        "rollNumber": {
+          "type": "string",
+          "description": "Optional roll number of student sender"
+        },
+        "avatarText": {
+          "type": "string",
+          "description": "Initials for avatar"
+        },
+        "avatarBg": {
+          "type": "string",
+          "description": "Tailwind color class for avatar background"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Human-readable time string (e.g., 04:12 PM)"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Unix timestamp in milliseconds for sorting"
+        },
+        "text": {
+          "type": "string",
+          "description": "Text content of the message"
+        },
+        "isFaculty": {
+          "type": "boolean",
+          "description": "Whether message is from faculty"
+        },
+        "status": {
+          "type": "string",
+          "description": "Delivery status of the message"
+        },
+        "attachmentType": {
+          "type": "string",
+          "description": "Type of attachment if any"
+        },
+        "attachmentData": {
+          "type": "object",
+          "description": "Metadata for attachments"
+        },
+        "reactions": {
+          "type": "object",
+          "description": "Reaction counts and user reaction status"
+        },
+        "verifiedByTeacher": {
+          "type": "boolean",
+          "description": "Whether note has been verified by faculty"
+        }
+      },
+      "required": [
+        "id",
+        "senderId",
+        "senderName",
+        "senderRole",
+        "text",
+        "createdAt"
+      ]
+    },
+    "ExamMark": {
+      "title": "ExamMark",
+      "description": "A student's mark entry for a specific subject and term",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier (studentId_subjectCode_term)"
+        },
+        "studentId": {
+          "type": "string",
+          "description": "ID of the student"
+        },
+        "classId": {
+          "type": "string",
+          "description": "ID of the class"
+        },
+        "subjectCode": {
+          "type": "string",
+          "description": "Code of the subject"
+        },
+        "term": {
+          "type": "string",
+          "description": "Term of the exam"
+        },
+        "theoryMarks": {
+          "type": "number",
+          "description": "Theory marks obtained"
+        },
+        "internalMarks": {
+          "type": "number",
+          "description": "Internal marks obtained"
+        },
+        "remarks": {
+          "type": "string",
+          "description": "Teacher remarks"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the mark entry"
+        },
+        "teacherId": {
+          "type": "string",
+          "description": "ID of the teacher who entered the marks"
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Timestamp of last update"
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "classId",
+        "subjectCode",
+        "term",
+        "updatedAt"
+      ]
+    },
+    "SchoolClass": {
+      "title": "SchoolClass",
+      "description": "A school academic class and section definition",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the class (e.g. cls_11_sci)"
+        },
+        "className": {
+          "type": "string",
+          "description": "Class display name (e.g. Class 11)"
+        },
+        "classCode": {
+          "type": "string",
+          "description": "Short code (e.g. 11-A)"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    }
+  },
+  "firestore": {
+    "/chat_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Messages sent by students and teachers in the Institutional Study Hub"
+    },
+    "/exam_marks/{markId}": {
+      "schema": "ExamMark",
+      "description": "Exam marks for students"
+    },
+    "/attendance_reports/{reportId}": {
+      "description": "Daily and periodic attendance reports"
+    },
+    "/attendance_logs/{logId}": {
+      "description": "Individual student attendance status logs"
+    },
+    "/students/{studentId}": {
+      "description": "Enrolled student profiles"
+    },
+    "/teachers/{teacherId}": {
+      "description": "Faculty and staff profiles"
+    },
+    "/classes/{classId}": {
+      "schema": "SchoolClass",
+      "description": "School classes and academic sections"
+    },
+    "/notices/{noticeId}": {
+      "description": "School bulletin notices and announcements"
+    },
+    "/homework/{homeworkId}": {
+      "description": "Daily homework and academic tasks"
+    },
+    "/timetable/{timetableId}": {
+      "description": "Class and period schedules"
+    }
+  }
+}

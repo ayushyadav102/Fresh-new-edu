@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix UniCampus Student ERP",
+  "description": "Comprehensive University Student ERP application featuring attendance, timetables, LMS portal, exam schedule \u0026 results, fees management, digital bus pass, hostel details, notifications, feedback system, and academic calendar.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

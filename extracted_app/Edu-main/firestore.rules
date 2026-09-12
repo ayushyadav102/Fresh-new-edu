@@ -1,0 +1,334 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function myRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? getUserData().role
+        : null;
+    }
+
+    function myRefId() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? getUserData().refId
+        : null;
+    }
+
+    function isTeacher() {
+      return myRole() == 'teacher';
+    }
+
+    function isPrincipal() {
+      return myRole() == 'principal';
+    }
+
+    function isSuperAdmin() {
+      return myRole() == 'superadmin';
+    }
+
+    function isLeadership() {
+      return myRole() in ['principal', 'superadmin'];
+    }
+
+    function isAdmin() {
+      return isLeadership() || (
+        isSignedIn() && (
+          exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+          false
+        )
+      );
+    }
+
+    function isStaff() {
+      return (myRole() in ['teacher', 'principal', 'superadmin']) || isAdmin();
+    }
+
+    function isStudent() {
+      return myRole() == 'student';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // Users Collection (stores { role, refId, updatedAt } for every signed-in user)
+    //
+    // Security model:
+    // - Anyone can self-create their OWN users/{uid} doc, but ONLY with
+    //   role 'student' (or no role at all) and NEVER with a refId. This lets
+    //   a brand-new account exist, but grants it no elevated role and no
+    //   link to any specific student/teacher/principal record.
+    // - Elevating a role (teacher/principal/superadmin) or linking a refId
+    //   to an account must be done by isLeadership() (principal/superadmin)
+    //   — i.e. through an admin-facing screen or a trusted server-side
+    //   process using the Admin SDK, never by the account itself.
+    // - No email pattern (e.g. "@edux.demo") ever grants elevated access.
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isStaff());
+      allow create: if isLeadership() || (
+        isSignedIn() && request.auth.uid == userId &&
+        (!incoming().keys().hasAny(['role']) || incoming().role == 'student') &&
+        !incoming().keys().hasAny(['refId'])
+      );
+      allow update: if isSignedIn() && (isLeadership() || (request.auth.uid == userId && (!incoming().keys().hasAny(['role', 'refId']) || (incoming().role == resource.data.role && incoming().refId == resource.data.refId))));
+      allow delete: if isLeadership();
+    }
+
+    // Students
+    function isValidStudent(data) {
+      return data.keys().hasAll(['id', 'name']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 128;
+    }
+
+    match /students/{studentId} {
+      allow read: if isSignedIn() && (isStaff() || myRefId() == studentId);
+      allow create, update: if isStaff() && isValidId(studentId) ;
+      allow delete: if isAdmin();
+    }
+
+    // Teachers
+    function isValidTeacher(data) {
+      return data.keys().hasAll(['id', 'name']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 128;
+    }
+
+    match /teachers/{teacherId} {
+      allow read: if isSignedIn();
+      allow create, update: if isStaff() && isValidId(teacherId) ;
+      allow delete: if isAdmin();
+    }
+
+    // Attendance Reports
+    function isValidAttendanceReport(data) {
+      return data.keys().hasAll(['id', 'date']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.date is string && data.date.size() <= 32;
+    }
+
+    match /attendance_reports/{reportId} {
+      allow read: if isSignedIn() && isStaff();
+      allow create, update: if isStaff() && isValidId(reportId) && isValidAttendanceReport(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Attendance Logs
+    function isValidAttendanceLog(data) {
+      return data.keys().hasAll(['id', 'date', 'studentId', 'status']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.date is string && data.date.size() <= 32 &&
+             data.studentId is string && data.studentId.size() <= 64 &&
+             data.status is string && data.status.size() <= 32;
+    }
+
+    match /attendance_logs/{logId} {
+      allow read: if isSignedIn() && (isStaff() || resource.data.studentId == myRefId());
+      allow create, update: if isStaff() && isValidId(logId) && isValidAttendanceLog(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Exam Marks
+    function isValidExamMark(data) {
+      return data.keys().hasAll(['id', 'studentId', 'classId', 'subjectCode', 'term']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 64 &&
+             data.classId is string && data.classId.size() <= 64 &&
+             data.subjectCode is string && data.subjectCode.size() <= 32 &&
+             data.term is string && data.term.size() <= 32;
+    }
+
+    match /exam_marks/{markId} {
+      allow read: if isSignedIn() && (isStaff() || resource.data.studentId == myRefId());
+      allow create, update: if isStaff() && isValidId(markId) && isValidExamMark(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Homework
+    function isValidHomework(data) {
+      return data.keys().hasAll(['id', 'title', 'subject']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 256 &&
+             data.subject is string && data.subject.size() <= 64;
+    }
+
+    match /homework/{homeworkId} {
+      allow read: if isSignedIn();
+      allow create, update: if isStaff() && isValidId(homeworkId) && isValidHomework(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Notices
+    function isValidNotice(data) {
+      return data.keys().hasAll(['id', 'title']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 256;
+    }
+
+    match /notices/{noticeId} {
+      allow read: if isSignedIn();
+      allow create, update: if isStaff() && isValidId(noticeId) && isValidNotice(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Classes
+    function isValidClass(data) {
+      return data.keys().hasAll(['id']) &&
+             data.id is string && data.id.size() <= 128;
+    }
+
+    match /classes/{classId} {
+      allow read: if isSignedIn();
+      allow create, update: if isStaff() && isValidId(classId) ;
+      allow delete: if isAdmin();
+    }
+
+    // Timetable
+    match /timetable/{timetableId} {
+      allow read: if isSignedIn();
+      allow create, update: if isStaff() && isValidId(timetableId);
+      allow delete: if isAdmin();
+    }
+
+    // Chat Messages
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['id', 'senderId', 'senderName', 'senderRole', 'text']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.senderId is string && data.senderId.size() <= 128 &&
+             data.senderName is string && data.senderName.size() <= 100 &&
+             data.senderRole is string && data.senderRole.size() <= 50 &&
+             data.text is string && data.text.size() <= 5000;
+    }
+
+    match /chat_messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(messageId) && isValidChatMessage(incoming()) && incoming().senderId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(messageId) && isValidChatMessage(incoming()) && (isStaff() || resource.data.senderId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Fees
+    match /fees/{feeId} {
+      allow read: if isSignedIn() && (isStaff() || resource.data.studentId == myRefId());
+      allow create, update, delete: if isLeadership();
+    }
+
+    // Hostel Complaints
+    match /hostel_complaints/{complaintId} {
+      allow read: if isSignedIn() && (isStaff() || resource.data.studentId == myRefId());
+      allow create: if isSignedIn() && (isStaff() || (isStudent() && incoming().studentId == myRefId()));
+      allow update, delete: if isSignedIn() && (isStaff() || (isStudent() && resource.data.studentId == myRefId()));
+    }
+
+    // Documents
+    match /documents/{docId} {
+      allow read: if isSignedIn() && (isStaff() || resource.data.studentId == myRefId());
+      allow create, update, delete: if isStaff();
+    }
+
+    // Feedbacks
+    match /feedbacks/{feedbackId} {
+      allow read: if isSignedIn() && (isStaff() || resource.data.studentId == myRefId());
+      allow create: if isSignedIn() && (isStaff() || (isStudent() && incoming().studentId == myRefId()));
+      allow update, delete: if isStaff();
+    }
+
+    // Academic Calendar
+    match /academic_calendar/{eventId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isLeadership() || isAdmin();
+    }
+
+    // Mentor Logs
+    match /mentor_logs/{logId} {
+      allow read: if isSignedIn() && (isStaff() || resource.data.studentId == myRefId());
+      allow create, update, delete: if isStaff();
+    }
+
+    // Principals
+    match /principals/{principalId} {
+      allow read: if isSignedIn() && isStaff();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // Superadmins
+    match /superadmins/{adminId} {
+      allow read: if isSignedIn() && isSuperAdmin();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // LMS Materials
+    match /lms_materials/{materialId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isStaff();
+    }
+
+    // Semester Results
+    match /semester_results/{resultId} {
+      allow read: if isSignedIn() && (isStaff() || resource.data.studentId == myRefId());
+      allow create, update, delete: if isStaff();
+    }
+
+    // Exam Schedule
+    match /exam_schedule/{scheduleId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isStaff();
+    }
+
+    // Daily Class Reports
+    match /daily_class_reports/{reportId} {
+      allow read: if isSignedIn() && isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // School Tenants
+    match /school_tenants/{tenantId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // Global Users
+    match /global_users/{userId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || request.auth.uid == userId);
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // Billing Invoices
+    match /billing_invoices/{invoiceId} {
+      allow read: if isSignedIn() && isSuperAdmin();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // Support Tickets
+    match /support_tickets/{ticketId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.createdBy == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Platform Metrics
+    match /platform_metrics/{metricId} {
+      allow read: if isSignedIn() && isSuperAdmin();
+      allow create, update, delete: if isSuperAdmin();
+    }
+  }
+}

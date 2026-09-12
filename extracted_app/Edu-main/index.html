@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>EduX Senior Secondary School ERP & Portal</title>
+    <meta name="description" content="Comprehensive Senior Secondary School ERP & Student/Teacher Portal featuring real-time attendance sync, timetables, LMS & assignments, exam marks, fees, and administrative reporting." />
+    
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#7c3aed" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="EduX School" />
+    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <link rel="icon" type="image/svg+xml" href="/icon-192.svg" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="EduX Senior Secondary School ERP & Portal" />
+    <meta property="og:description" content="Comprehensive Senior Secondary School ERP & Student/Teacher Portal featuring real-time attendance sync, timetables, LMS & assignments, exam marks, fees, and administrative reporting." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/pwabuilder-sw.js').catch(function() {
+            navigator.serviceWorker.register('/sw.js').catch(function(err) {
+              console.log('ServiceWorker registration ignored:', err);
+            });
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
+

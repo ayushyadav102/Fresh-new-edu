@@ -1,0 +1,41 @@
+  const handlePrincipalAddStudent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stuName.trim()) return;
+
+    const classNum = stuClass.replace(/\D/g, '') || '9';
+    const rollId = `STU2026${classNum}${stuRoll.padStart(2, '0')}`;
+    const generatedEmail =
+      stuEmail.trim() || `${stuName.toLowerCase().replace(/\s+/g, '')}${stuRoll}@stxaviors.edu.in`;
+
+    const newStudentProfile = addNewStudent({
+      studentId: rollId,
+      name: stuName.trim(),
+      email: generatedEmail,
+      phone: stuPhone.trim(),
+      avatar: stuAvatar,
+      className: stuClass,
+      section: stuSection,
+      rollNo: stuRoll,
+      stream: stuStream,
+      fatherName: stuFather.trim() || 'Parent / Guardian',
+      motherName: stuMother.trim() || 'Mother',
+      parentPhone: stuParentPhone.trim(),
+      bloodGroup: stuBlood,
+      dob: stuDob,
+      mentor: {
+        name: principal?.name || 'Dr. Arvind Swaminathan',
+        designation: 'Principal / Senior Administrator',
+        department: 'Principal Office',
+        email: principal?.email || 'principal@stxaviors.edu.in',
+        phone: principal?.phone || '+91 98111 00001',
+        office: 'Principal Desk Office'
+      }
+    });
+
+    setIsAddStudentModalOpen(false);
+    setStuName('');
+    setStuEmail('');
+    setStuFather('');
+    setStuMother('');
+    showSuccess(`🎉 Student "${newStudentProfile.name}" enrolled into ${stuClass} (ID: ${newStudentProfile.studentId}, Roll #${stuRoll}) with immediate credentials live!`);
+  };
