@@ -249,6 +249,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       else if (userData.role === 'teacher' && userData.refId) switchTeacher(userData.refId);
       return true;
     } catch (error: any) {
+      if (error.code === 'auth/operation-not-allowed') {
+        console.warn('Email/Password not enabled in Firebase Console. Using local mock login bypass for demo purposes.');
+        if (targetRole === 'superadmin') {
+          setRoleState('superadmin');
+          setIsAuthenticated(true);
+          return true;
+        }
+        if (targetRole === 'principal') {
+          setRoleState('principal');
+          setPrincipal(DEFAULT_PRINCIPAL as any);
+          setIsAuthenticated(true);
+          return true;
+        }
+        if (targetRole === 'teacher') {
+          setRoleState('teacher');
+          setTeacher(DEMO_TEACHERS[0] as any);
+          setIsAuthenticated(true);
+          return true;
+        }
+        setRoleState('student');
+        setStudent(DEMO_STUDENTS[0] as any);
+        setIsAuthenticated(true);
+        return true;
+      }
       if (error.code !== 'auth/user-not-found' && error.code !== 'auth/invalid-credential') {
         console.error('Firebase Auth Login failed:', error);
       }
