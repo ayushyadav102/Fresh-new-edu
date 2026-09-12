@@ -606,7 +606,7 @@ export const PrincipalFeesModule: React.FC = () => {
                           // Approve logic
                           if (approveFeeRequest) {
                             // Create terms based on category
-                            let terms = [];
+                            let terms: Array<{ amount: number; dueDate: string }> = [];
                             let rawAmt = Number(req.originalAmount.replace(/[^0-9]/g, ''));
                             if (req.category === '2 parts') {
                               terms = [
